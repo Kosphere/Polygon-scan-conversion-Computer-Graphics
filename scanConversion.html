@@ -1,0 +1,295 @@
+﻿<!DOCTYPE HTML>
+<html>
+<head>
+    <title>CG project1 - part1</title>
+    <script type="text/javascript" src="./config.js"></script>
+    
+</head>
+<body>
+    <canvas id="myCanvas" width="1024" height="768" style="border:1px solid #c3c3c3;">
+    Your browser does not support the canvas element.
+    </canvas>
+	<div id = "cons" width = "1024" height = "768" style="border:1px solid #c3c3c3;position:absolute;display:block;width:1024px;height:768px;left:0px;top:0px;">
+
+	</div>
+
+
+	<style>
+	.con{
+		border:1px solid black;
+		border-radius:11px;
+		position:absolute;
+		display:block;
+		width:20px;
+		height:20px;
+		left:0px;
+		top:0px;
+		background-color:red;
+		
+	}
+
+	</style>
+	
+	<script type="text/javascript">
+
+
+	function drawSquare(cxt,vertex,color){
+		let maxY = vertex[0][1];
+		let minY = vertex[0][1];
+		//记录扫描线开始和结束的y轴坐标
+		let tmp;
+		lines = new Array();
+		for(let i = 0;i < 4;i++){
+			tmp = vertex[i][1];
+			if(tmp>maxY){
+				maxY = tmp;
+			}
+			if(tmp<minY){
+				minY = tmp;
+			}
+			let j = i + 1;
+			
+			if(j == 4)
+				j=0;
+
+			let line = new Array();
+			if(vertex[i][1]>vertex[j][1]){
+				line.push(vertex[j][0]);
+				line.push(vertex[j][1]);
+				line.push((vertex[i][0]-vertex[j][0])/(vertex[i][1]-vertex[j][1]));
+				line.push(vertex[i][1]);
+				line.push(vertex[j][0]);
+			}
+			else{
+				line.push(vertex[i][0]);
+				line.push(vertex[i][1]);
+				line.push((vertex[j][0]-vertex[i][0])/(vertex[j][1]-vertex[i][1]));
+				line.push(vertex[j][1]);
+				line.push(vertex[i][0]);
+			}
+			line.push((vertex[i][0]-vertex[j][0]))
+			line.push((vertex[i][1]-vertex[j][1]));
+			if((vertex[i][1]-vertex[j][1])==0)
+				line.push(0);
+			else
+				line.push(1);
+			lines.push(line);
+		}
+		//记录每条边的起始x，起始y，步进x值，结束y值，边是否水平。并记录起点终点x轴差值和y轴差值。
+		for(let i = 0;i<4;i++){
+			let j = i + 1;
+			
+			if(j == 4)
+				j=0;
+			if(lines[i][3]==lines[j][1]){
+				lines[i][3] -= 1;
+			}
+			else if(lines[i][1]==lines[j][3]){
+				lines[j][3] -= 1;
+			}
+		}
+		//相邻边如一条边的y最大值等于另一条边的y最小值，则将y最大值减一
+		
+		let len = 4;
+		console.log(lines);
+		//return;
+		for(let i = 0;i<len;i++){
+			if(lines[i][7] == 0){
+				lines.splice(i,1);
+				len--;
+				i--;
+			}
+			else
+				lines[i][7] = 0;
+			
+		}
+		//剔除水平边
+		lines.sort(function(a,b){
+			let c = a[1] - b[1];
+			c = c==0?a[2]-b[2]:c;
+			return c;
+		})
+		//边列表排序
+		lineList = [];
+		index = 0;
+
+		for(let m = minY;m<=maxY;m++){
+			//逐行扫描
+			while(index<len&&lines[index][1]>=m&&lines[index][1]<m+1){
+				lineList.push(lines[index]);
+				index++;
+			}
+			lineList.sort(function(a,b){
+				let c = a[0] - b[0];
+				c = c==0?a[2]-b[2]:c;
+				return c;
+			});
+
+			let status = 1;
+			for(let n = 0;n<lineList.length-1;n++){
+				let next = n+1;
+				if(status = 1){
+					cxt.beginPath();
+					cxt.strokeStyle = color;
+					cxt.lineWidth =1;
+					cxt.moveTo(Math.floor(lineList[n][0]),m);
+					cxt.lineTo(Math.floor(lineList[n+1][0]),m);
+					cxt.stroke();
+					n++;
+					status = 0;
+				}
+				else
+					status = 1;
+				//扫描画线
+			}
+			
+			let listLen = lineList.length;
+			for(let n = 0;n < listLen; n++){
+				if(lineList[n][3]>=m&&lineList[n][3]<m+1){
+					lineList.splice(n,1);
+					listLen--;
+					n--;
+				}
+			}
+			//去除使用完毕的边
+			
+			for(let n = 0;n<lineList.length;n++){
+				lineList[n][1] += 1;
+				lineList[n][7] += 1;
+				lineList[n][0] = lineList[n][4] + lineList[n][5]*lineList[n][7]/lineList[n][6];//+ lineList[n][2];
+				
+				
+			}
+			//更新边表信息
+			
+		}
+		
+		
+	}
+
+
+
+	let c=document.getElementById("myCanvas");
+	let div = document.getElementById('cons');
+	div.style.top = c.offsetTop+'px';
+	div.style.left = c.offsetLeft+'px';
+	let cxt = c.getContext("2d");
+	cxt.translate(0.5, 0.5);
+	let cons = new Array();
+	let oDiv;
+	let conNumber = 0;
+	for(let i = 0;i<vertex_pos.length;i++){
+		let con = document.createElement('div');
+		con.className='con';
+		con.ondragstart = function () {
+		return false;
+		};
+		cons.push(con);
+		div.appendChild(con);
+	}
+	//添加手柄
+	for(let i = 0;i<cons.length;i++){
+		cons[i].style.left = vertex_pos[i][0] - 10 + 'px';
+		cons[i].style.top = vertex_pos[i][1] - 10 + 'px';
+		cons[i].onmousedown = function(event){
+			oDiv = this;
+			conNumber = i;
+		}
+		cons[i].onmouseup = function(event){
+			oDiv = null;
+		}
+	}
+	//设置手柄选中监听
+
+	document.onmousemove=function(ev){
+	
+		if(oDiv==null)
+			return;
+		//鼠标移动时如未选中手柄返回
+		let oEvent=ev||event;
+		let left = oEvent.clientX+document.body.scrollLeft+document.documentElement.scrollLeft-9;
+		let top = oEvent.clientY+document.body.scrollTop+document.documentElement.scrollTop-9;
+		if(left>c.width||left<0||top>c.height||top<0)
+			return;
+		//手柄移出canvas范围返回
+		oDiv.style.left=left-10+'px';
+		oDiv.style.top=top-10+'px';
+		vertex_pos[conNumber][0] = Math.round(left);
+		vertex_pos[conNumber][1] = Math.round(top);
+		//更新顶点坐标
+		for(let i = -1;i<c.height;i++){
+			cxt.beginPath();
+			cxt.strokeStyle = 'white';
+			cxt.lineWidth =1;
+			cxt.moveTo(-1,i);
+			cxt.lineTo(c.width,i);
+			cxt.stroke();
+		}
+		//清屏
+		for(let p = 0;p < polygon.length;p++){
+			let changed = false;
+			for(let i = 0;i<4;i++){
+				if(polygon[p][i] == conNumber){
+					changed = true;
+					break;
+				}
+			}
+
+			if(changed==true)
+				continue;
+			vertex_poses = new Array();
+			for(let i = 0;i<4;i++){
+				vertex_poses.push(vertex_pos[polygon[p][i]]);
+			}
+			let color = vertex_color[polygon[p][0]];
+			let myColor = "rgba("+color[0] + "," +
+										   +color[1] + "," +
+										   +color[2] + "," +
+										   +255 + ")" ;
+			drawSquare(cxt,vertex_poses,myColor);
+		}
+		//重新绘制未改变的矩形
+		for(let p = 0;p < polygon.length;p++){
+			let changed = false;
+			for(let i = 0;i<4;i++){
+				if(polygon[p][i] == conNumber){
+					changed = true;
+					break;
+				}
+			}
+			if(changed==false)
+				continue;
+			vertex_poses = new Array();
+			for(let i = 0;i<4;i++){
+				vertex_poses.push(vertex_pos[polygon[p][i]]);
+			}
+			let color = vertex_color[polygon[p][0]];
+			let myColor = "rgba("+color[0] + "," +
+										   +color[1] + "," +
+										   +color[2] + "," +
+										   +255 + ")" ;
+			drawSquare(cxt,vertex_poses,myColor);
+		}
+		//重新绘制改变的矩形
+	}
+	//设置拖动监听
+
+	for(let p = 0;p < polygon.length;p++){
+		vertex_poses = new Array();
+		for(let i = 0;i<4;i++){
+			vertex_poses.push(vertex_pos[polygon[p][i]]);
+		}
+		let color = vertex_color[polygon[p][0]];
+		let myColor = "rgba("+color[0] + "," +
+									   +color[1] + "," +
+									   +color[2] + "," +
+									   +255 + ")" ;
+
+		drawSquare(cxt,vertex_poses,myColor);
+	}
+	//初始矩形绘制
+
+	</script>
+ 
+</body>
+</html>
